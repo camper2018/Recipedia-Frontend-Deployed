@@ -1,4 +1,5 @@
 import { Dropdown } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import localStore from '../utilities/localStorage';
 const baseUrl = import.meta.env.VITE_BASE_URL;
@@ -28,7 +29,7 @@ const ProfileDropdown = ({ userSettings, handleLogout, handleChange }) => {
 
             <Dropdown.Toggle variant="outline-success" id="dropdown-basic">
                 <img
-                    src={userSettings.avatar || ''} 
+                    src={userSettings.avatar || ''}
                     alt="Profile image"
                     style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
                 />
@@ -37,14 +38,14 @@ const ProfileDropdown = ({ userSettings, handleLogout, handleChange }) => {
             <Dropdown.Menu>
                 <Dropdown.Item href="#" className="text-secondary">
                     <div {...getRootProps()} className="cursor-pointer">
-                        <input {...getInputProps()}/>
+                        <input {...getInputProps()} />
                         Change Profile Image
                     </div>
 
                 </Dropdown.Item>
                 {userSettings.username ?
-                    <Dropdown.Item className="text-secondary" href="/" onClick={handleLogout}>Logout</Dropdown.Item> :
-                    <Dropdown.Item className="text-secondary" href={`${baseUrl}/login`}>Login</Dropdown.Item>}
+                    (<Dropdown.Item ><Link to="/" onClick={handleLogout} className="text-secondary text-decoration-none pe-5">Logout</Link></Dropdown.Item>) :
+                    (<Dropdown.Item><Link to="/login" className="text-secondary text-decoration-none pe-5">Login</Link></Dropdown.Item>)}
             </Dropdown.Menu>
         </Dropdown>
     );
