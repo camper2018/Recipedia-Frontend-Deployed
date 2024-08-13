@@ -44,8 +44,8 @@ const ProfileDropdown = ({ userSettings, handleLogout, handleChange }) => {
 
                 </Dropdown.Item>
                 {userSettings.username ?
-                    (<Dropdown.Item ><Link to="/" onClick={handleLogout} className="text-secondary text-decoration-none pe-5">Logout</Link></Dropdown.Item>) :
-                    (<Dropdown.Item><Link to="/login" className="text-secondary text-decoration-none pe-5">Login</Link></Dropdown.Item>)}
+                    (<Dropdown.Item  as="button"><Link to="/" onClick={handleLogout} className="text-secondary text-decoration-none pe-5">Logout</Link></Dropdown.Item>) :
+                    (<Dropdown.Item as="button"><Link to="/login" className="text-secondary text-decoration-none pe-5">Login</Link></Dropdown.Item>)}
             </Dropdown.Menu>
         </Dropdown>
     );

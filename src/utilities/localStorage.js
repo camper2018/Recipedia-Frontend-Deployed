@@ -37,9 +37,15 @@ const getJwt = () => {
 const setJwt = (val)=> {
     localStorage.setItem('recipediajwt', val);
 }
+const getUser = () => {
+    return localStorage.getItem("user");
+}
 const setUser = (val) => {
     if (val)
     localStorage.setItem('user', val);
+}
+const getImage = ()=> {
+    return localStorage.getItem("profile-picture");
 }
 const saveImage = (val) => {
   localStorage.setItem("profile-picture", val);
@@ -54,6 +60,8 @@ export default {
     saveListToStore,
     getJwt,
     setJwt,
+    getUser,
     setUser,
+    getImage,
     saveImage
 }
