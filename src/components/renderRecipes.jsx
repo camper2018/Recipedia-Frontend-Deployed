@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RenderListItem from './renderListItem';
 import Button from 'react-bootstrap/Button';
@@ -8,7 +8,7 @@ import Styles from './renderListItem.module.css';
 import { FaTrash } from "react-icons/fa";
 import { FaEnvelopeOpenText } from "react-icons/fa";
 import localStore from '../utilities/localStorage';
-const RenderRecipes = ({ recipes, createIngredientsList, handleDeleteRecipes, handleAddToFavorites, handleRemoveFromFavorites, handleSavedLists , isFavorite}) => {
+const RenderRecipes = ({ recipes, createIngredientsList, handleDeleteRecipe, handleAddToFavorites, handleRemoveFromFavorites, handleSavedLists , isFavorite}) => {
     const navigate = useNavigate();
     const [show, setShow] = useState(false);
     const lists = localStore.getSavedListsFromStore();
@@ -62,7 +62,7 @@ const RenderRecipes = ({ recipes, createIngredientsList, handleDeleteRecipes, ha
             <Button className="m-auto ms-0" variant="success" onClick={() => navigate('/')}><IoIosArrowBack size={18} /> Add More</Button>
             <div className="h-75 overflow-scroll">
                 {recipes.map((item, i) =>
-                    <RenderListItem  key={i} item={item} isFavorite={isFavorite(item.id)} deleteItem={handleDeleteRecipes} addToFavorites={handleAddToFavorites} removeFromFavorites={handleRemoveFromFavorites} />
+                    <RenderListItem  key={i} item={item} isFavorite={isFavorite(item.id)} deleteItem={handleDeleteRecipe} addToFavorites={handleAddToFavorites} removeFromFavorites={handleRemoveFromFavorites} />
                 )}
             </div>
             <div className="mt-2 d-flex justify-content-evenly w-100 mx-auto">

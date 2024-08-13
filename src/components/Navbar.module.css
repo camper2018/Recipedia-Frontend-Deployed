@@ -1,9 +1,10 @@
 .container {
     background-color: black;
-    padding: 10px;
+    padding: 25px 0;
     display: flex;
     align-items: center;
-    justify-content: space-between; 
+    justify-content: space-between;
+ 
 }
 .logo {
     float: left;
@@ -30,19 +31,20 @@
     margin-top: 10px;
     
 }
+
 .btnContainer{
     width: 174px;
     margin-right: 0;
     margin-top: 5px;
 }
-.login{
-   color: white;
-   font-weight: bold;
-   text-decoration: none;
-   float: right; 
-   margin-left: 10px;
-}
 
+.login{
+    font-weight: bold;
+    text-decoration: none;
+ }
+ .login:active{
+    background-color: transparent;
+ }
 @media only screen and (max-width: 280px) {
     .logo{
         margin-bottom: 70px;

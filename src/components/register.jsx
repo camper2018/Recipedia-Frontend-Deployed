@@ -1,11 +1,14 @@
 import { Container, Row, Col } from 'react-bootstrap';
-import { useState} from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './register.module.css';
 import { FaEye } from "react-icons/fa";
 import { FaEyeSlash } from "react-icons/fa";
-import authServices from '../utilities/apiServices/authServices';
 import ErrorComponent from './displayError';
+import useHttp from './useHttp';
+import validatePassword from '../utilities/validatePassword';
+import localStore from '../utilities/localStorage';
+
 const Register = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -18,8 +21,23 @@ const Register = () => {
     const [formErrors, setFormErrors] = useState([]);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
-
-    const handleRegistration = async (e) => {
+    const [submitError, submitFormData] = useHttp('api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+    }, (response)=> {
+       localStore.setJwt(response.jwt);
+       localStore.setUser(JSON.stringify(response.user));
+       setFormErrors(null);
+       navigate('/');
+    })
+    useEffect(()=> {
+        if(submitError){
+            setError(submitError);
+        }
+    }, [submitError])
+    const handleRegistration = (e) => {
         e.preventDefault();
         setFormErrors([]);
         if (username === ''){
@@ -37,30 +55,22 @@ const Register = () => {
         if (password !== confirmPassword) {
             setFormErrors((prevErrors) => [...prevErrors, 'Passwords don\'t match']);
         }
+        if (validatePassword(password)){
+            setFormErrors((prevErrors)=> [...prevErrors, validatePassword(password)]);
+        }
+
         if (
             username.length > 0 &&
             email.length > 0 &&
             password.length > 0 &&
             confirmPassword.length > 0 &&
             emailValid &&
-            password === confirmPassword
+            password === confirmPassword &&
+            !validatePassword(password)
         ) {
-            try {
                 setIsLoading(true);
-                const data = await authServices.register(email, password, username);
-                if (data.success){
-                    localStorage.setItem('recipediajwt', data.jwt);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    navigate('/');
-                } else {
-                    console.error("Error: ", data.error)
-                    throw  Error(data.error);
-                }
-            } catch (error) {
-               console.error('Registration Failed', error);
-               setError(error.message);
-
-            }
+                submitFormData(null,  { email, password, username } );
+                setIsLoading(false);
         }
     }
     function handleUsername(value){

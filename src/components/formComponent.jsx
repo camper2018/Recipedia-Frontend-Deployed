@@ -15,7 +15,7 @@ import UnitSystemToggle from './toggleSwitch';
 import { v4 as uuidv4 } from 'uuid';
 import Loading from './loading';
 import ErrorComponent from './displayError';
-import dataServices from '../utilities/apiServices/dataServices';
+import useHttp from './useHttp';
 
 const FormComponent = ({ unitSystem, toggleUnitSystem, categories, handleSubmitForm, param }) => {
     const [recipeName, setRecipeName] = useState('');
@@ -29,25 +29,27 @@ const FormComponent = ({ unitSystem, toggleUnitSystem, categories, handleSubmitF
     });
     const navigate = useNavigate();
     const [isLoading, setLoading] = useState(false);
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            const {data, error} = await dataServices.getRecipes(`api/recipes/myrecipes/${param}`);
-            if (error) {
-                throw error;
-            }
-            const updatedData = { ...data, tags: data.tags || [''] };
-            setRecipeName(updatedData.name);
-            setMethod(updatedData.method);
-            setTags(updatedData.tags || ['']);
-            setIngredients(updatedData.ingredients);
-            setLoading(false);
-        } catch (err) {
-            setLoading(false);
-            console.error('Error fetching recipe!', err.message);
-            setErrors({ ...errors, fetchError: err.message });
-        }
+    const [fetchErrorMsg, fetchRecipe] = useHttp('api/recipes/myrecipes', {
+        method: 'GET'
+    }, (data) => {
+        const updatedData = { ...data, tags: data.tags || [''] };
+        setRecipeName(updatedData.name);
+        setMethod(updatedData.method);
+        setTags(updatedData.tags || ['']);
+        setIngredients(updatedData.ingredients);
+        setErrors({...errors, fetchError: null});
+    });
+    const fetchData = () => {
+        setLoading(true);
+        fetchRecipe(param);
+        setLoading(false);
     }
+    useEffect(()=> {
+      if (fetchErrorMsg){
+        setErrors({ ...errors, fetchError: fetchErrorMsg});
+      }
+    }, fetchErrorMsg);
+
     useEffect(() => {
         if (param) {
            fetchData();
@@ -308,7 +310,6 @@ const FormComponent = ({ unitSystem, toggleUnitSystem, categories, handleSubmitF
         );
     }
 }
-
 export default FormComponent;
 
 

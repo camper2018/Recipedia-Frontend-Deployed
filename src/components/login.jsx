@@ -1,13 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col } from 'react-bootstrap';
 import styles from './login.module.css';
 import { FaEye } from "react-icons/fa";
 import { FaEyeSlash } from "react-icons/fa";
-import authServices from '../utilities/apiServices/authServices';
 import ErrorComponent from './displayError';
 import localStore from '../utilities/localStorage';
+import useHttp from './useHttp';
 
 const Login = () => {
 
@@ -18,6 +18,17 @@ const Login = () => {
   const [formErrors, setFormErrors] = useState([]);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [submitError, submitFormData] = useHttp('api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+}, (response)=> {
+   localStore.setJwt(response.jwt);
+   localStore.setUser(JSON.stringify(response.user));
+   setFormErrors(null);
+   navigate('/');
+})
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -40,7 +51,7 @@ const Login = () => {
     }
     setCredentials({...credentials, email: value })
 }
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setFormErrors([]);
     if (credentials.email.length > 0 && !emailValid) {
@@ -57,22 +68,20 @@ const Login = () => {
         credentials.password.length > 0 &&
         emailValid
       ) {
-        try {
-            setIsLoading(true);
-            // authenticate at backend using api
-            const data = await authServices.logIn(credentials.email, credentials.password);
-            if (data.success){
-                localStore.setJwt(data.jwt);
-                localStore.setUser(JSON.stringify(data.user));
-                navigate('/');
-            } else {
-              throw Error(data.error);
-            }
-        } catch (error) {
-          setError(error.message);
-        }
+    
+      setIsLoading(true);
+      // fetch data using the function returned from useHttp hook which accepts id and body as parameters
+      submitFormData(null, {email: credentials.email, password: credentials.password});
+      setIsLoading(false);
     }
   };
+// listen to change in submit error
+  useEffect(()=> {
+    if (submitError){
+      setError(submitError);
+    }
+  },[submitError])
+
   if (error){
     return (<ErrorComponent error={error}/>)
   }

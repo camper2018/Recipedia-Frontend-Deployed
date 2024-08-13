@@ -1,94 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import RenderListItem from './renderListItem';
 import Button from 'react-bootstrap/Button';
 import { FaPlus } from "react-icons/fa";
 import { IoIosArrowBack } from "react-icons/io";
 import Loading from "./loading";
 import localStore from '../utilities/localStorage';
-import dataServices from '../utilities/apiServices/dataServices';
+import useHttp from './useHttp';
 
 const MyRecipes = ({ handleAddToFavorites, handleRemoveFromFavorites }) => {
     const [recipes, setRecipes] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [isLoading, setLoading] = useState(false);
+    const token = localStore.getJwt();
     const navigate = useNavigate();
 
-    const fetchRecipes = async () => {
-        const jwt = localStore.getJwt();
-        try {
-            setLoading(true);
-            if (jwt) {
-                const {data, error} = await dataServices.getRecipes(`api/recipes/myrecipes`, jwt);
-                if (error) {
-                    throw Error(error);
-                }
-                setRecipes(data);
-                setLoading(false);
-            } else {
-                throw Error(`Access restricted! Please sign up..`)
-            }
-        } catch (err) {
-            setLoading(false);
-            console.error("Error retrieving recipes:", err);
-            setError(err.message);
-        }
+    // Fetch recipes using useHttp hook
+    const [fetchErrorMsg, fetchRecipes] = useHttp('api/recipes/myrecipes', {
+        headers: { 'Authorization': `Bearer ${token}` },
+    }, (data) => {
+        setRecipes(data);
+        setIsLoading(false);
+        setError(null);
+    });
+    const handleEdit = async (id) => {
+        navigate(`/edit-recipe/${id}`);
     }
 
-    useEffect(() => {
-        fetchRecipes();
-    },[]);
-    
-    const handleDelete = async (id) => {
-        let text = `
+    // Delete recipe using useHttp hook
+    const [deleteErrorMsg, deleteRecipe] = useHttp(`api/recipes/myrecipes`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+    }, (data) => {
+        setRecipes((prevRecipes) =>
+            prevRecipes.filter((recipe) => recipe.id !== Number(data.recipeId)));
+        setError(null);
+    })
+    const handleDelete = (recipeId) => {
+        if (token) {
+            let text = `
         Warning! 
         This action this irreversible!.
         Are you sure you want to delete this recipe?`
 
-        if (confirm(text) == true) {
-            try {
-                const jwt = localStore.getJwt();
-                const {data, error} = await dataServices.deleteRecipe(`api/recipes/myrecipes/${id}`, jwt);
-                if (error) {
-                    throw error;
-                }
-                const filteredRecipes = recipes.filter(recipe => recipe.id !== id);
-                setRecipes(filteredRecipes);
-            } catch (err) {
-                console.error('Error deleting a recipe with id of ' + id, err);
-                setError(err.message);
+            if (confirm(text) == true) {
+                setIsLoading(true);
+                deleteRecipe(recipeId);
+                setIsLoading(false);
+            } else {
+                return;
             }
         } else {
-           return;
+            setError('Authentication required!');
+            setIsLoading(false);
         }
     };
+    // fetch recipes if authenticated user
+    useEffect(() => {
+        if (token) {
+            setIsLoading(true);
+            fetchRecipes();
+            setIsLoading(false);
+        } else {
+            setError('Authentication required!');
+            setIsLoading(false);
+        }
+    }, []);
+    
+    // trigger re-render on http error
+    useEffect(() => {
+        if (fetchErrorMsg) {
+            setError(fetchErrorMsg);
+        }
+        if (deleteErrorMsg) {
+            setError(deleteErrorMsg);
+        }
 
-    const handleEdit = async (id) => {
-        navigate(`/edit-recipe/${id}`);
-    }
+    }, [fetchErrorMsg, deleteErrorMsg, /*addErrorMsg*/]);
+
     if (isLoading) {
         return <Loading />;
-    } else
-        if (error) {
-            return <h2 className="m-auto text-danger">{error}</h2>
-        } else {
-            return (
-                <div className="h-100 pt-5 overflow-scroll">
-                    <div className="d-flex justify-content-between">
-                        <Button variant="success" onClick={() => { navigate('/'); location.reload(); }}>
-                            <IoIosArrowBack />
-                        </Button>
-                        <Button variant="success" onClick={() => { navigate('/add-recipe') }}>
-                            Add Recipe&nbsp;
-                            <FaPlus />
-                        </Button>
-                    </div>
-                    {recipes.map((recipe, i) => (
-                        <RenderListItem key={i} item={recipe} isFavorite={recipe.favorite} deleteItem={handleDelete} addToFavorites={handleAddToFavorites} removeFromFavorites={handleRemoveFromFavorites} handleEdit={() => handleEdit(recipe.id)} />
-                    )
-                    )}
-                </div>)
-        }
-};
+    }
+    if (error) {
+        return <h2 className="m-auto text-danger">{error}</h2>;
+    }
+    return (
+        <div className="h-100 pt-5 overflow-scroll">
+            <div className="d-flex justify-content-between mb-3">
+                <Button variant="success" onClick={() => { navigate('/'); window.location.reload(); }}>
+                    <IoIosArrowBack />
+                </Button>
+                <Button variant="success" onClick={() => { navigate('/add-recipe'); }}>
+                    Add Recipe&nbsp;
+                    <FaPlus />
+                </Button>
+                
+            </div>
+            {recipes.length > 0 ? (
+                recipes.map((recipe, i) => (
+                    <RenderListItem
+                        key={i}
+                        item={recipe}
+                        isFavorite={recipe.favorite}
+                        deleteItem={() => handleDelete(recipe.id)}
+                        addToFavorites={() => handleAddToFavorites(recipe.id)}
+                        removeFromFavorites={() => handleRemoveFromFavorites(recipe.id)}
+                        handleEdit={() => handleEdit(recipe.id)}
+                    />
+                ))
+            ) : (
+                <p>No recipes available.</p>
+            )}
+        </div>
+    );
+}
 
 export default MyRecipes;

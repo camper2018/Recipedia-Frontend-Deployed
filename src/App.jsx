@@ -24,7 +24,8 @@ import Register from './components/register';
 import Login from './components/login';
 import AddFormComponent from './components/addFormComponent';
 import EditFormComponent from './components/editFormComponent';
-import dataServices from './utilities/apiServices/dataServices';
+import useHttp from './components/useHttp';
+
 const App = () => {
   const [recipes, setRecipes] = useState([]);
   const [favorites, setFavorites] = useState(localStore.getFavoritesFromStore());
@@ -33,6 +34,36 @@ const App = () => {
   const [searchedRecipes, setSearchedRecipes] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setLoading] = useState(false);
+  const token = localStore.getJwt();
+
+  const [addErrorMsg, addRecipe] = useHttp('api/recipes/myrecipes', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`,  "Content-Type": "application/json", },
+    }, (data)=> {
+        setError(null);
+    });
+    const [updateErrorMsg, updateRecipe] = useHttp('api/recipes/myrecipes', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`,  "Content-Type": "application/json" },
+  }, (data)=> {
+    setError(null);
+  });
+  const [selectMenuErrorMsg, fetchRecipes] = useHttp('api/recipes/random-recipes', {
+    method: 'GET',
+  }, (data)=> {
+    console.log(data);
+    setRecipes(data);
+    setError(null);
+  })
+  const [searchErrorMsg, searchRecipe] = useHttp('api/recipes/search', {
+    method: 'GET',
+  }, (data)=> {
+    console.log(data);
+    setSearchedRecipes([...searchedRecipes, ...data]);
+    setRecipes([...recipes, ...data]);
+    setError(null);
+  })
+
   useEffect(() => {
     if (recipes.length) {
       convertUnitSystemOfRecipes(unitSystem, recipes);
@@ -40,14 +71,71 @@ const App = () => {
     const myFavorites = localStore.getFavoritesFromStore();
     setFavorites(myFavorites);
   }, [unitSystem]);
-
+  
+  useEffect(()=> {
+    if (addErrorMsg){
+      setError(addErrorMsg);
+    }
+    if (updateErrorMsg){
+      setError(updateErrorMsg);
+    }
+    if (selectMenuErrorMsg){
+      setError(selectMenuErrorMsg);
+    }
+    if (searchErrorMsg){
+      setError(searchErrorMsg);
+    }
+  },[addErrorMsg, updateErrorMsg, selectMenuErrorMsg, searchErrorMsg]);
   /************ Event handlers ***********/
+  const handleAddRecipe = (recipe) => {
+    const recipeId = uuidv4();
+    recipe.favorite = false;
+    recipe.id = recipeId;
+    console.log("recipe:", recipe)
+    if (token){
+        setLoading(true);
+        addRecipe(null, recipe);
+        setRecipes(prevRecipes => [...prevRecipes, recipe]);
+        setLoading(false);
+        alert(`Your recipe ${recipe.name} was saved successfully`);
+    } else {
+        setError('Authentication required!');
+        setLoading(false);
+    }
+}
+const handleEditRecipe = (updatedRecipe, id)=> {
+    if (token){
+      setLoading(true);
+      setError(null);
+      updateRecipe(id, updatedRecipe);
+      setLoading(false);
+      alert(`Successfully updated ${updatedRecipe.name} recipe.`);
+    } else {
+      setError('Authentication required!');
+    }
+}
 
-  const handleDeleteRecipes = (id) => {
+  const handleDeleteRecipe = (id) => {
     const filteredRecipes = recipes.filter(recipe => recipe.id !== id);
     setRecipes(filteredRecipes);
   };
-
+  const handleSelectMenu = (eventKey) => {
+    if (eventKey === 'favorites') {
+      setRecipes([...favorites]);
+    } else {
+        setLoading(true);
+        fetchRecipes(eventKey)
+        setLoading(false);
+    }
+  }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const searchTerm = (e.target.elements['search'].value).trim();
+    setLoading(true);
+    searchRecipe(searchTerm);
+    e.target.elements['search'].value = "";
+    setLoading(false);
+  }
   // gets the selected savedList from local storage and set categories to that list so that it can be displayed by FinalList component.
   const handleSavedLists = (list) => {
     setCategories(list);
@@ -83,25 +171,7 @@ const App = () => {
     convertUnitSystemOfRecipes(selectedSystem, recipes);
 
   }
-  const handleSelectMenu = async (eventKey) => {
-    if (eventKey === 'favorites') {
-      setRecipes([...favorites]);
-    } else {
-      try {
-        setLoading(true);
-        const {data, error} = await dataServices.getRecipes(`api/recipes/random-recipes/${eventKey}`)
-        if (error) {
-          throw error;
-        }
-        setRecipes(data);
-        setLoading(false);
-      } catch (err) {
-        setLoading(false);
-        console.log("Error: ", err.message);
-        setError(err.message);
-      }
-    }
-  }
+  
   const createIngredientsList = (recipes) => {
     // extract ingredients from recipes as ingredient's array
     const ingredients = recipes.reduce((accumulator, recipe) => {
@@ -272,38 +342,6 @@ const App = () => {
 
   };
 
-  const handleAddRecipe = async (recipe) => {
-    const recipeId = uuidv4();
-    recipe.favorite = false;
-    recipe.id = recipeId;
-    const jwt = localStore.getJwt();
-    // save recipe
-    try {
-      const {data, error} = await dataServices.postRecipe(`api/recipes/myrecipes`, 'POST', jwt, recipe);
-      if (error) {
-        throw error;
-      }
-      setRecipes(prevRecipes => [...prevRecipes, recipe]);
-      alert(`Your recipe ${recipe.name} was saved successfully`);
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-    }
-  }
-  const handleEditRecipe = async (updatedRecipe, id)=> {
-    const jwt = localStore.getJwt();
-    try {
-      const {data, error} = await dataServices.postRecipe(`api/recipes/myrecipes/${id}`, 'PUT', jwt, updatedRecipe);
-      if (error) {
-        throw error;
-      }
-      alert(`Successfully updated ${updatedRecipe.name} recipe.`);
-    
-    } catch (err) {
-        console.error(err.message);
-        setError(err.message)
-    }
-  }
   const handleAddItem = (e) => {
     e.preventDefault();
     const category = e.target.ingredientCategory.value;
@@ -327,26 +365,7 @@ const App = () => {
     }
     setCategories(updatedCategories);
   }
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const searchTerm = e.target.elements['search'].value;
-    try {
-      setLoading(true);
-      const {data, error} = await dataServices.getRecipes(`api/recipes/search/${searchTerm.trim()}`)
-      if (error) {
-        throw error;
-      }
-      e.target.elements['search'].value = "";
-      setSearchedRecipes([...searchedRecipes, ...data]);
-      setRecipes([...recipes, ...data]);
-      setLoading(false);
 
-    } catch (err) {
-      setLoading(false);
-      console.log("Error: ", err.message);
-      setError(err.message);
-    }
-  }
   if (isLoading) {
     return (<div className="page mx-auto">
       < Loading />
@@ -382,7 +401,7 @@ const App = () => {
                   <RenderRecipes
                     recipes={recipes}
                     createIngredientsList={createIngredientsList}
-                    handleDeleteRecipes={handleDeleteRecipes}
+                    handleDeleteRecipe={handleDeleteRecipe}
                     handleAddToFavorites={handleAddToFavorites}
                     handleRemoveFromFavorites={handleRemoveFromFavorites}
                     handleSavedLists={handleSavedLists}
@@ -418,7 +437,7 @@ const App = () => {
                   <RenderRecipes
                     recipes={recipes}
                     createIngredientsList={createIngredientsList}
-                    handleDeleteRecipes={handleDeleteRecipes}
+                    handleDeleteRecipe={handleDeleteRecipe}
                     handleAddToFavorites={handleAddToFavorites}
                     handleRemoveFromFavorites={handleRemoveFromFavorites}
                     handleSavedLists={handleSavedLists}
