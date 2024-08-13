@@ -1,7 +1,7 @@
 import { Dropdown } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone';
 import localStore from '../utilities/localStorage';
-const frontendBaseUrl = import.meta.env.VITE_FRONTEND_URL;
+const baseUrl = import.meta.env.VITE_BASE_URL;
 const ProfileDropdown = ({ userSettings, handleLogout, handleChange }) => {
 
     // handle image upload
@@ -44,7 +44,7 @@ const ProfileDropdown = ({ userSettings, handleLogout, handleChange }) => {
                 </Dropdown.Item>
                 {userSettings.username ?
                     <Dropdown.Item className="text-secondary" href="/" onClick={handleLogout}>Logout</Dropdown.Item> :
-                    <Dropdown.Item className="text-secondary" href={`${frontendBaseUrl}/login`}>Login</Dropdown.Item>}
+                    <Dropdown.Item className="text-secondary" href={`${baseUrl}/login`}>Login</Dropdown.Item>}
             </Dropdown.Menu>
         </Dropdown>
     );
