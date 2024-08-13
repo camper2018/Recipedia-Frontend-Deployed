@@ -3,6 +3,7 @@
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat; 
+  height: 100vh;
 }
 .heading1{
   color: blue;
